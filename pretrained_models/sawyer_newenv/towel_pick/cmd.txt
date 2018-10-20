@@ -2,6 +2,6 @@ CUDA_VISIBLE_DEVICES=0 python scripts/train.py --train_batch_sizes 16 \
  --input_dir \
  $VMPC_DATA_DIR/towel_pick/ \
  --dataset sawyer --model savp \
-  --conf pretrained_models/sawyer_newenv/towel_pick/model_hparams.json \
+  --conf pretrained_models/sawyer_newenv/towel_pick/ \
  --logs_dir pretrained_models/sawyer_newenv/towel_pick/view0 \
  --dataset_hparams image_view=[0]
