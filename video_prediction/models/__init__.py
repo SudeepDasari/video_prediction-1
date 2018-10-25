@@ -3,6 +3,7 @@ from .base_model import VideoPredictionModel
 from .non_trainable_model import NonTrainableVideoPredictionModel
 from .non_trainable_model import GroundTruthVideoPredictionModel, RepeatVideoPredictionModel
 from .pix2pix_model import Pix2PixVideoPredictionModel
+from .savp_model_ensemble import EnsembleSAVPVideoPredictionModel
 from .savp_model import SAVPVideoPredictionModel
 from .multi_savp_model import MultiSAVPVideoPredictionModel
 from .indep_multi_savp_model import IndepMultiSAVPVideoPredictionModel
@@ -20,6 +21,7 @@ def get_model_class(model):
         'repeat': 'RepeatVideoPredictionModel',
         'pix2pix': 'Pix2PixVideoPredictionModel',
         'savp': 'SAVPVideoPredictionModel',
+        'ensemble_savp': 'EnsembleSAVPVideoPredictionModel',
         'multi_savp': 'MultiSAVPVideoPredictionModel',
         'indep_multi_savp': 'IndepMultiSAVPVideoPredictionModel',
         'flow': 'FlowVideoPredictionModel',
