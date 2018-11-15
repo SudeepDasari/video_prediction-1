@@ -1,0 +1,30 @@
+{
+    "checkpoint": null,
+    "conf": "pretrained_models/ensemble_tests/train_cartgripper/",
+    "dataset": "sawyer",
+    "dataset_hparams": "image_view=[0]",
+    "dataset_hparams_dict": null,
+    "eval_summary_freq": 0,
+    "gif_freq": 0,
+    "gpu_mem_frac": 0,
+    "image_summary_freq": 5000,
+    "input_dirs": [
+        "/raid/sudeep/cartgripper_xz_grasp/pick_place_records/good/train"
+    ],
+    "logs_dir": "pretrained_models/ensemble_tests/train_cartgripper/view0",
+    "metrics_freq": 0,
+    "model": "ensemble_savp",
+    "model_hparams": null,
+    "model_hparams_dict": null,
+    "output_dir": "pretrained_models/ensemble_tests/train_cartgripper/view0/model.ensemble_savp.None",
+    "progress_freq": 100,
+    "resume": false,
+    "save_freq": 5000,
+    "seed": null,
+    "summary_freq": 1000,
+    "timing_file": null,
+    "train_batch_sizes": [
+        16
+    ],
+    "val_input_dirs": null
+}

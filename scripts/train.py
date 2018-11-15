@@ -17,6 +17,10 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.util import nest
 
+import os, sys, inspect
+sys.path.insert(0, '/home/angelina/deeprl_project/video_prediction-1/')
+print(sys.path)
+
 from video_prediction import datasets, models
 from video_prediction.utils import ffmpeg_gif, tf_utils
 
