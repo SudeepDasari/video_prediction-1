@@ -331,6 +331,8 @@ def main():
     parser.add_argument("--gpu_mem_frac", type=float, default=0, help="fraction of gpu memory to use")
     parser.add_argument("--seed", type=int, default=7)
 
+    parser.add_argument("--ensemble", action='store_true')
+
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -398,16 +400,27 @@ def main():
         num_examples_per_epoch = args.num_samples
     else:
         num_examples_per_epoch = dataset.num_examples_per_epoch()
-    if num_examples_per_epoch % args.batch_size != 0:
-        raise ValueError('batch_size should evenly divide the dataset')
+    # if num_examples_per_epoch % args.batch_size != 0:
+    #     raise ValueError('batch_size should evenly divide the dataset')
+    if args.ensemble:
+        assert args.batch_size % model.num_ensembles == 0, "batchsize should be evenly divided by num_ensembles"
+        inputs, target = dataset.make_batch(args.batch_size // model.num_ensembles)
+    else:
+        inputs, target = dataset.make_batch(args.batch_size)
 
-    inputs, target = dataset.make_batch(args.batch_size)
     if not isinstance(model, models.GroundTruthVideoPredictionModel):
         # remove ground truth data past context_frames to prevent accidentally using it
         for k, v in inputs.items():
             if k != 'actions':
                 inputs[k] = v[:, :context_frames]
 
+    if args.ensemble:
+        for k, v in inputs.items():
+            tiling = [1 for _ in range(len(v.shape))]
+            tiling[0] = model.num_ensembles
+            inputs[k] = tf.tile(v, tiling)
+            print('new', inputs[k])
+            print('original', v)
     input_phs = {k: tf.placeholder(v.dtype, v.shape, '%s_ph' % k) for k, v in inputs.items()}
     target_ph = tf.placeholder(target.dtype, target.shape, 'targets_ph')
 
