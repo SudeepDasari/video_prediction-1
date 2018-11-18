@@ -178,7 +178,7 @@ def discriminator_fn(targets, inputs=None, hparams=None):
 class DNACell(tf.nn.rnn_cell.RNNCell):
     def __init__(self, inputs, hparams, reuse=None):
         super(DNACell, self).__init__(_reuse=reuse)
-        self.num_ensembles = 4
+        self.num_ensembles = hparams.num_ensembles
         self.inputs = inputs
         self.hparams = hparams
 
@@ -760,7 +760,8 @@ class EnsembleSAVPVideoPredictionModel(VideoPredictionModel):
             nef=64,
             use_rnn_z=True,
             ablation_conv_rnn_norm=False,
-            renormalize_pixdistrib=True
+            renormalize_pixdistrib=True,
+            num_ensembles=4
         )
         return dict(itertools.chain(default_hparams.items(), hparams.items()))
 
@@ -777,6 +778,10 @@ class EnsembleSAVPVideoPredictionModel(VideoPredictionModel):
             override_hparams_maybe('e_net', 'none')
             override_hparams_maybe('schedule_sampling', 'none')
         return hparams
+
+    @property
+    def num_ensembles(self):
+        return self.hparams.num_ensembles
 
 
 def apply_dna_kernels(image, kernels, dilation_rate=(1, 1)):
