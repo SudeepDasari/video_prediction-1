@@ -65,6 +65,7 @@ def resize_and_draw_circle(image, size, center, radius, dpi=128.0, **kwargs):
 def save_image_sequence(prefix_fname, images, overlaid_images=None, centers=None,
                         radius=5, alpha=0.8, time_start_ind=0):
     import cv2
+    import imageio
     head, tail = os.path.split(prefix_fname)
     if head and not os.path.exists(head):
         os.makedirs(head)
@@ -76,6 +77,7 @@ def save_image_sequence(prefix_fname, images, overlaid_images=None, centers=None
         gray_images = rgb2gray(images)
         overlaid_images = as_heatmap(overlaid_images)
         images = (1 - alpha) * gray_images[..., None] + alpha * overlaid_images
+    gif_images = []
     for t, image in enumerate(images):
         image_fname = '%s_%02d.png' % (prefix_fname, time_start_ind + t)
         if centers is not None:
@@ -85,6 +87,8 @@ def save_image_sequence(prefix_fname, images, overlaid_images=None, centers=None
         image = (image * 255.0).astype(np.uint8)
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         cv2.imwrite(image_fname, image)
+        gif_images.append(image)
+    imageio.mimsave('{}.gif'.format(prefix_fname), gif_images)
 
 
 def save_image_sequences(prefix_fname, images, overlaid_images=None, centers=None,
@@ -532,6 +536,7 @@ def main():
                                 raise NotImplementedError
                             results['eval_gen_images_%s/%s' % (metric_name, subtask)][i] = all_gen_images[sidx][i]
                             results['eval_%s/%s' % (metric_name, subtask)][i] = all_metric[sidx][i]
+            # CHANGE THE BELOW STUFF INTO A GIF IF ARGS IS IN ENSEMBLE
             save_prediction_eval_results(os.path.join(output_dir, 'prediction_eval'),
                                          results, model.hparams, sample_ind, args.only_metrics, args.eval_substasks)
 
