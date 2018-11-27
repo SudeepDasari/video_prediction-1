@@ -425,13 +425,12 @@ def main():
             inputs[k] = tf.tile(v, tiling)
             print('new', inputs[k])
             print('original', v)
-
-        for k, v in target.items():
-            tiling = [1 for _ in range(len(v.shape))]
-            tiling[0] = model.num_ensembles
-            target[k] = tf.tile(v, tiling)
-            print('new', target[k])
-            print('original', v)
+        
+        tiling = [1 for _ in range(len(target.shape))]
+        tiling[0] = model.num_ensembles
+        target = tf.tile(target, tiling)
+        print(target)
+        
         
     input_phs = {k: tf.placeholder(v.dtype, v.shape, '%s_ph' % k) for k, v in inputs.items()}
     target_ph = tf.placeholder(target.dtype, target.shape, 'targets_ph')
