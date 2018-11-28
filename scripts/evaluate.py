@@ -114,7 +114,17 @@ def save_image_sequences(prefix_fname, images, overlaid_images=None, centers=Non
         gif_images = np.array(gif_images)
         #print("GIF IMAGES SHAPE: {}".format(gif_images.shape))
         if not ensemble:
-            imageio.mimsave('{}.gif'.format(images_fname), gif_images)
+            gif_images = np.expand_dims(gif_images, 0)
+            #import os.path
+            numpy_name = '{}.npy'.format(prefix_fname)
+            if not os.path.isfile(numpy_name):
+                data = gif_images
+                np.save(numpy_name, data)
+            else:
+                data = np.load(numpy_name)
+                data = np.concatenate([data, gif_images], axis=0)
+                np.save(numpy_name, data)
+            #imageio.mimsave('{}.gif'.format(images_fname), gif_images)
         else:
             if i % 4 == 0:
                 if len(group_a) == 0:
