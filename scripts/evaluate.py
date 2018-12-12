@@ -13,8 +13,12 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.util import nest
 
+import os, sys, inspect
+# sys.path.insert(0, '/home/angelina/deeprl_project/video_prediction-1/')
+
 from video_prediction import datasets, models, metrics
 from video_prediction.policies.servo_policy import ServoPolicy
+import imageio
 
 
 def compute_expectation_np(pix_distrib):
@@ -85,14 +89,16 @@ def save_image_sequence(prefix_fname, images, overlaid_images=None, centers=None
             image = resize_and_draw_circle(image, np.array(image.shape[:2]) * scale, centers[t], radius,
                                            edgecolor='r', fill=False, linestyle='--', linewidth=2)
         image = (image * 255.0).astype(np.uint8)
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        cv2.imwrite(image_fname, image)
         gif_images.append(image)
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) # imaes[:,:,::-1]
+        #cv2.imwrite(image_fname, image)
+    #print("GIF IMAGES SHAPE: {}".format(np.array(gif_images).shape))
+    return gif_images
     imageio.mimsave('{}.gif'.format(prefix_fname), gif_images)
 
 
 def save_image_sequences(prefix_fname, images, overlaid_images=None, centers=None,
-                         radius=5, alpha=0.8, sample_start_ind=0, time_start_ind=0):
+                         radius=5, alpha=0.8, sample_start_ind=0, time_start_ind=0, ensemble=False):
     head, tail = os.path.split(prefix_fname)
     if head and not os.path.exists(head):
         os.makedirs(head)
@@ -100,10 +106,54 @@ def save_image_sequences(prefix_fname, images, overlaid_images=None, centers=Non
         overlaid_images = [None] * len(images)
     if centers is None:
         centers = [None] * len(images)
+    group_a, group_b, group_c, group_d = [], [], [], []
     for i, (images_, overlaid_images_, centers_) in enumerate(zip(images, overlaid_images, centers)):
         images_fname = '%s_%05d' % (prefix_fname, sample_start_ind + i)
-        save_image_sequence(images_fname, images_, overlaid_images_, centers_,
+        gif_images = save_image_sequence(images_fname, images_, overlaid_images_, centers_,
                             radius=radius, alpha=alpha, time_start_ind=time_start_ind)
+        gif_images = np.array(gif_images)
+        #print("GIF IMAGES SHAPE: {}".format(gif_images.shape))
+        if not ensemble:
+            gif_images = np.expand_dims(gif_images, 0)
+            #import os.path
+            numpy_name = '{}.npy'.format(prefix_fname)
+            if not os.path.isfile(numpy_name):
+                data = gif_images
+                np.save(numpy_name, data)
+            else:
+                data = np.load(numpy_name)
+                data = np.concatenate([data, gif_images], axis=0)
+                np.save(numpy_name, data)
+            #imageio.mimsave('{}.gif'.format(images_fname), gif_images)
+        else:
+            if i % 4 == 0:
+                if len(group_a) == 0:
+                    group_a = gif_images
+                else:
+                    group_a = np.concatenate([group_a, gif_images], axis=1)
+            elif i % 4 == 1:
+                if len(group_b) == 0:
+                    group_b = gif_images
+                else:
+                    group_b = np.concatenate([group_b, gif_images], axis=1)
+            elif i % 4 == 2:
+                if len(group_c) == 0:
+                    group_c = gif_images
+                else:
+                    group_c = np.concatenate([group_c, gif_images], axis=1)
+            elif i % 4 == 3:
+                if len(group_d) == 0:
+                    group_d = gif_images
+                else:
+                    group_d = np.concatenate([group_d, gif_images], axis=1)
+    if ensemble:
+        for j, group in enumerate([group_a, group_b, group_c, group_d]):
+            #imageio.mimsave('{0}_{1}_{2}_{3}.gif'.format(prefix_fname, sample_start_ind, j, i), group[i])
+            imageio.mimsave('{0}_{1}_{2}.gif'.format(prefix_fname, sample_start_ind, j), group)
+            #for i in range(len(group)):
+                #imageio.mimsave('{0}_{1}_{2}_{3}.gif'.format(prefix_fname, sample_start_ind, j, i), group[i])
+                #print("GIF IMAGES SHAPE AFTER: {}".format(np.array(group[i]).shape))
+
 
 
 def save_metrics(prefix_fname, metrics, sample_start_ind=0):
@@ -143,7 +193,7 @@ def merge_hparams(hparams0, hparams1):
     return hparams
 
 
-def save_prediction_eval_results(task_dir, results, model_hparams, sample_start_ind=0, only_metrics=False, subtasks=None):
+def save_prediction_eval_results(task_dir, results, model_hparams, sample_start_ind=0, only_metrics=False, subtasks=None, ensemble=False):
     context_frames = model_hparams.context_frames
     context_images = results['images'][:, :context_frames]
     images = results['eval_images']
@@ -168,9 +218,9 @@ def save_prediction_eval_results(task_dir, results, model_hparams, sample_start_
                 continue
 
             save_image_sequences(os.path.join(subtask_dir, 'inputs', 'context_image'),
-                                 context_images, sample_start_ind=sample_start_ind)
+                                 context_images, sample_start_ind=sample_start_ind, ensemble=ensemble)
             save_image_sequences(os.path.join(subtask_dir, 'outputs', 'gen_image'),
-                                 gen_images, sample_start_ind=sample_start_ind)
+                                 gen_images, sample_start_ind=sample_start_ind, ensemble=ensemble)
 
 
 def save_prediction_results(task_dir, results, model_hparams, sample_start_ind=0, only_metrics=False):
@@ -423,13 +473,10 @@ def main():
             tiling = [1 for _ in range(len(v.shape))]
             tiling[0] = model.num_ensembles
             inputs[k] = tf.tile(v, tiling)
-            print('new', inputs[k])
-            print('original', v)
         
         tiling = [1 for _ in range(len(target.shape))]
         tiling[0] = model.num_ensembles
         target = tf.tile(target, tiling)
-        print(target)
         
         
     input_phs = {k: tf.placeholder(v.dtype, v.shape, '%s_ph' % k) for k, v in inputs.items()}
@@ -537,7 +584,7 @@ def main():
                             results['eval_%s/%s' % (metric_name, subtask)][i] = all_metric[sidx][i]
             # CHANGE THE BELOW STUFF INTO A GIF IF ARGS IS IN ENSEMBLE
             save_prediction_eval_results(os.path.join(output_dir, 'prediction_eval'),
-                                         results, model.hparams, sample_ind, args.only_metrics, args.eval_substasks)
+                                         results, model.hparams, sample_ind, args.only_metrics, args.eval_substasks, ensemble=args.ensemble)
 
         if 'prediction' in tasks or 'motion' in tasks:  # do these together
             feed_dict = {input_ph: input_results[name] for name, input_ph in input_phs.items()}
