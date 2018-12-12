@@ -149,9 +149,10 @@ class BaseVideoDataset(object):
 
     def decode_and_preprocess_images(self, image_buffers, image_shape):
         def decode_and_preprocess_image(image_buffer):
-            image_buffer = tf.reshape(image_buffer, [])
+            # image_buffer = tf.reshape(image_buffer, [])
             if self.jpeg_encoding:
-                image = tf.image.decode_jpeg(image_buffer)
+                # image = tf.image.decode_jpeg(image_buffer)
+                image = tf.decode_raw(image_buffer, tf.uint8)
             else:
                 image = tf.decode_raw(image_buffer, tf.uint8)
             image = tf.reshape(image, image_shape)
@@ -279,7 +280,8 @@ class VideoDataset(BaseVideoDataset):
                         raise ValueError('Inferred shape for feature %s is %r but instead got shape %r.' %
                                          (name, inferred_shape, shape))
             elif list_type == 'bytesList':
-                image_str, = feature[list_type]['value']
+                # image_str, = feature[list_type]['value']
+                image_str = feature[list_type]['value']
                 # try to infer image shape
                 inferred_shape = None
                 if not self.jpeg_encoding:
@@ -318,7 +320,8 @@ class VideoDataset(BaseVideoDataset):
         for i in range(self._max_sequence_length):
             for example_name, (name, shape) in self.state_like_names_and_shapes.items():
                 if example_name.startswith('images'):  # special handling for image
-                    features[name % i] = tf.FixedLenFeature([1], tf.string)
+                    # features[name % i] = tf.FixedLenFeature([1], tf.string)
+                    features[name % i] = tf.FixedLenFeature([64*64*3], tf.string)
                 else:
                     features[name % i] = tf.FixedLenFeature(shape, tf.float32)
         for i in range(self._max_sequence_length - 1):
