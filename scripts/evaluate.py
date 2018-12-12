@@ -14,7 +14,7 @@ import tensorflow as tf
 from tensorflow.python.util import nest
 
 import os, sys, inspect
-sys.path.insert(0, '/home/angelina/deeprl_project/video_prediction-1/')
+# sys.path.insert(0, '/home/angelina/deeprl_project/video_prediction-1/')
 
 from video_prediction import datasets, models, metrics
 from video_prediction.policies.servo_policy import ServoPolicy
