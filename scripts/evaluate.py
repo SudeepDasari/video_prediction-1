@@ -149,10 +149,32 @@ def save_image_sequences(prefix_fname, images, overlaid_images=None, centers=Non
     if ensemble:
         for j, group in enumerate([group_a, group_b, group_c, group_d]):
             #imageio.mimsave('{0}_{1}_{2}_{3}.gif'.format(prefix_fname, sample_start_ind, j, i), group[i])
+            # write the variance
+            f = open("{}.txt".format(prefix_fname), "a+")
+            piece = group.shape[1] // 4
+            enses = []
+            for l in range(4):
+                enses.append(group[:, l*piece:(l+1)*piece, :, :])
+            # group is (x, 192, 64, 3)
+            # enses is (4, x, 48, 64, 3)
+            enses = np.array(enses)
+            stds = np.std(enses, axis=0)
+            stds = np.mean(stds, axis=(1, 2, 3))
+            f.write("{0}_{1}: {2}\n {3} \n\n".format(sample_start_ind, j, stds, np.mean(stds)))
+            f.close()
             imageio.mimsave('{0}_{1}_{2}.gif'.format(prefix_fname, sample_start_ind, j), group)
             #for i in range(len(group)):
                 #imageio.mimsave('{0}_{1}_{2}_{3}.gif'.format(prefix_fname, sample_start_ind, j, i), group[i])
                 #print("GIF IMAGES SHAPE AFTER: {}".format(np.array(group[i]).shape))
+            numpy_name = '{}.npy'.format(prefix_fname)
+            stds = np.expand_dims(stds, 0)
+            if not os.path.isfile(numpy_name):
+                data = stds
+                np.save(numpy_name, data)
+            else:
+                data = np.load(numpy_name)
+                data = np.concatenate([data, stds], axis=0)
+                np.save(numpy_name, data)
 
 
 
