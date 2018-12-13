@@ -561,22 +561,29 @@ class DNACell(tf.nn.rnn_cell.RNNCell):
                     ensemble_transformed_images[ens].append(split_four[ens])
 
         if 'pix_distribs' in inputs:
-            raise NotImplementedError('pixel distribution control stuff')
             with tf.name_scope('transformed_pix_distribs'):
-                transformed_pix_distribs = []
-                if self.hparams.last_frames and self.hparams.num_transformed_images:
-                    if self.hparams.transformation == 'flow':
-                        transformed_pix_distribs.extend(apply_flows(last_pix_distribs, flows))
-                    else:
-                        transformed_pix_distribs.extend(apply_kernels(last_pix_distribs, kernels, self.hparams.dilation_rate))
-                if self.hparams.prev_image_background:
-                    transformed_pix_distribs.append(pix_distrib)
-                if self.hparams.first_image_background and not self.hparams.context_images_background:
-                    transformed_pix_distribs.append(self.inputs['pix_distribs'][0])
-                if self.hparams.context_images_background:
-                    transformed_pix_distribs.extend(tf.unstack(self.inputs['pix_distribs'][:self.hparams.context_frames]))
-                if self.hparams.generate_scratch_image:
-                    transformed_pix_distribs.append(pix_distrib)
+                ens_transformed_pix_distribs = [[] for _ in range(self.num_ensembles)]
+                ens_last_pix_distribs = [tf.split(p, self.num_ensembles) for p in last_pix_distribs]
+                ens_pix_distrib = tf.split(pix_distrib, self.num_ensembles)
+                ens_context = [tf.split(c, self.num_ensembles) for c in
+                               tf.unstack(self.inputs['pix_distribs'][:self.hparams.context_frames])]
+
+                for ens in range(self.num_ensembles):
+                    if self.hparams.last_frames and self.hparams.num_transformed_images:
+                        if self.hparams.transformation == 'flow':
+                            ens_distribs = [p[ens] for p in ens_last_pix_distribs]
+                            ens_transformed_pix_distribs[ens].extend(apply_flows(ens_distribs, ensemble_flows[ens]))
+                        else:
+                            raise NotImplementedError
+
+                    if self.hparams.prev_image_background:
+                        ens_transformed_pix_distribs[ens].append(ens_pix_distrib[ens])
+                    if self.hparams.first_image_background and not self.hparams.context_images_background:
+                        ens_transformed_pix_distribs[ens].append(ens_context[0][ens])
+                    if self.hparams.context_images_background:
+                        ens_transformed_pix_distribs[ens].extend([c[ens] for c in ens_context])
+                    if self.hparams.generate_scratch_image:
+                        ens_transformed_pix_distribs[ens].append(pix_distrib[ens])
 
         with tf.name_scope('masks'):
             if len(ensemble_transformed_images[0]) > 1:
@@ -609,9 +616,12 @@ class DNACell(tf.nn.rnn_cell.RNNCell):
                 assert len(ensemble_transformed_images[ens]) == len(ensemble_masks[ens])
                 ensemble_gen_image.append(tf.add_n([transformed_image * mask
                                       for transformed_image, mask in zip(ensemble_transformed_images[ens], ensemble_masks[ens])]))
-
+        masks = [tf.concat([ensemble_masks[j][i] for j in range(self.num_ensembles)], axis=0)
+                               for i in range(len(ensemble_masks[0]))]
         if 'pix_distribs' in inputs:
-            assert NotImplementedError('pix stuff again')
+            transformed_pix_distribs = [tf.concat([p[t] for p in ens_transformed_pix_distribs], 0)
+                                       for t in range(len(ens_transformed_pix_distribs[0]))]
+
             with tf.name_scope('gen_pix_distribs'):
                 assert len(transformed_pix_distribs) == len(masks)
                 gen_pix_distrib = tf.add_n([transformed_pix_distrib * mask
@@ -629,8 +639,6 @@ class DNACell(tf.nn.rnn_cell.RNNCell):
         transformed_images = [tf.concat([ensemble_transformed_images[j][i] for j in range(self.num_ensembles)], axis=0) 
                                for i in range(len(ensemble_transformed_images[0]))]
 
-        masks = [tf.concat([ensemble_masks[j][i] for j in range(self.num_ensembles)], axis=0) 
-                               for i in range(len(ensemble_masks[0]))]
         outputs = {'gen_images': gen_image,
                    'gen_inputs': gen_input,
                    'transformed_images': tf.stack(transformed_images, axis=-1),

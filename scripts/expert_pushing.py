@@ -1,7 +1,7 @@
 from sim.agent.general_agent import GeneralAgent
 from sim.policy.pushing_policy import PushingPolicy
 from sim.mujoco_env.cartgripper_env.cartgripper_xz_grasp import CartgripperXZGrasp
-
+k
 BASE_DIR='/home/sudeep/Desktop/video_prediction-1/data/sim_data'
 env_params = {
         # resolution sufficient for 16x anti-aliasing
